@@ -1,14 +1,14 @@
 # Função de fazer gestão de tempo e procedimentos de forma genérica
 # Autor: Luiz Furlanetti 
-# Versão: 1.0.5
+# Versão: 1.0.6
 
 import sqlite3
 import pandas as pd
 import streamlit as st
 import os
 import altair as alt
-import locale
 from datetime import datetime, timedelta
+from babel.dates import format_date
 
 # Configuração da página
 st.set_page_config(
@@ -18,19 +18,18 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-try:
-    locale.setlocale(locale.LC_TIME, "Portuguese_Brazil.1252")
-except:
-    locale.setlocale(locale.LC_TIME, "pt_BR.utf8")
-
 # Datas da semana atual
 hoje = datetime.now().date()
 inicio = hoje - timedelta(days=hoje.weekday())
 fim = inicio + timedelta(days=4)
-st.sidebar.title(f"Semana: de {inicio.day} de {inicio.strftime('%B')} a {fim.day}")
+
+# Formata datas completas em português
+inicio_formatado = format_date(inicio, format='full', locale='pt_BR')
+fim_formatado = format_date(fim, format='full', locale='pt_BR')
+
+st.sidebar.title(f"Semana: {inicio_formatado} até {fim_formatado}")
 
 # Caminho do banco
-# Se necessário, altere o caminho para o local correto onde o banco está armazenado
 db_path = os.path.join(os.getcwd(), 'memoria.db')
 print("Banco em uso:", db_path)
 
@@ -69,7 +68,6 @@ def inicializar_banco():
         """)
         conn.commit()
 
-# Chama a função de inicialização para garantir que as tabelas existam
 inicializar_banco()
 
 # ----------------------
@@ -89,7 +87,6 @@ def salvar_disciplina(nome):
 def adicionar_funcionario(nome, disciplina):
     with get_connection() as conn:
         conn.execute("INSERT INTO funcionarios (nome, disciplina) VALUES (?, ?)", (nome, disciplina))
-        # Busca os tempos a partir de um funcionário "Geral" para definir um template
         tempos = conn.execute("SELECT hora FROM disponibilidade WHERE nome = ? LIMIT 15", ("Geral",)).fetchall()
         tempos = [t[0] for t in tempos] if tempos else [f"{h:02d}:00 as {h+1:02d}:00" for h in range(8, 23)]
         for dia in ['segunda', 'terca', 'quarta', 'quinta', 'sexta']:
@@ -172,20 +169,17 @@ with st.sidebar.expander("➕ Cadastrar Funcionário"):
             adicionar_funcionario(novo_nome, disc_sel)
             st.success(f"Funcionário '{novo_nome}' cadastrado em {disc_sel}!")
 
-# Seleciona disciplina e funcionário
 disciplinas = carregar_disciplinas()
 disc_sel = st.sidebar.selectbox("Disciplina", disciplinas, key="disc_sel")
 funcionarios = listar_funcionarios_por_disciplina(disc_sel)
 func_sel = st.sidebar.radio("Funcionário", funcionarios, key="func_sel")
 
-# Carrega disponibilidade
 df_disp = carregar_disponibilidade(func_sel)
 df_pivot = df_disp.pivot_table(index="hora", columns="dia", values="atividade", aggfunc="first").reset_index()
 df_pivot.rename(columns={"hora": "Tempo"}, inplace=True)
 dias_ordem = ['segunda', 'terca', 'quarta', 'quinta', 'sexta']
 
-# Tabs
-tab1, tab2, tab3 = st.tabs(["Missões", "Disponibilidade", "Concluido"])
+tab1, tab2, tab3 = st.tabs(["Missões", "Disponibilidade", "Concluído"])
 
 with tab1:
     col1, col2 = st.columns([2, 2])
@@ -229,18 +223,13 @@ with tab2:
         st.success("Dados salvos com sucesso!")
 
 with tab3:
-    st.subheader('Concluido')
+    st.subheader('Concluído')
     missoes_concluidas = carregar_missoes_concluidas(func_sel)
     if missoes_concluidas:
         for mid, m in missoes_concluidas:
             if st.toggle(m, key=f"deletar_{mid}"):
                 apagar_missao(mid)
                 st.success("Missão removida.")
-st.sidebar.image(r'U:\Profissionais\LUIZ FURLANETTI\PROG\32443B9A-0511-49A5-BBA6-4B5C0A836BA8.PNG', 
-                 caption=None, 
-                 width=None, 
-                 use_column_width=None, 
-                 clamp=False, 
-                 channels="RGB", 
-                 output_format="auto",
-                 use_container_width=False)
+
+# Corrigir caminho para a imagem
+st.sidebar.image('img/logo.png')
