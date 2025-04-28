@@ -232,4 +232,4 @@ with tab3:
                 st.success("Missão removida.")
 
 # Corrigir caminho para a imagem
-st.sidebar.image('img/logo.png')
+st.sidebar.image('32443B9A-0511-49A5-BBA6-4B5C0A836BA8.PNG')
