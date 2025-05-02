@@ -5,3 +5,4 @@ babel
 numpy
 plotly
 scipy
+openpyxl
